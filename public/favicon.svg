@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="24" fill="#3ab7ff"/>
+  <rect x="5" y="5" width="90" height="90" rx="20" fill="#eaf6ff" stroke="#6c63b5" stroke-width="5"/>
+  <text x="50" y="48" font-family="'Fredoka', system-ui, sans-serif" font-weight="700" font-size="24" fill="#2b2a55" text-anchor="middle">T/D</text>
+  <text x="50" y="76" font-family="'Fredoka', system-ui, sans-serif" font-weight="700" font-size="22" fill="#ffcd3c" text-anchor="middle">?!</text>
+</svg>

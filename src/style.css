@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "candy";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #eaf6ff;
+  --color-base-200: #ffffff;
+  --color-base-300: #dbe9fb;
+  --color-base-content: #2b2a55;
+  --color-primary: #ff6b81;
+  --color-primary-content: #ffffff;
+  --color-secondary: #3ab7ff;
+  --color-secondary-content: #ffffff;
+  --color-accent: #ffcd3c;
+  --color-accent-content: #6b4a00;
+  --color-neutral: #6c63b5;
+  --color-neutral-content: #ffffff;
+  --color-info: #3ab7ff;
+  --color-info-content: #ffffff;
+  --color-success: #4cd964;
+  --color-success-content: #06390f;
+  --color-warning: #ffcd3c;
+  --color-warning-content: #6b4a00;
+  --color-error: #ff5a5f;
+  --color-error-content: #ffffff;
+  --radius-selector: 1rem;
+  --radius-field: 1rem;
+  --radius-box: 1.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 4px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@theme {
+  --font-display: "Fredoka", "Nunito", sans-serif;
+}
+
+@font-face {
+  font-family: "Fredoka";
+  src: url("./assets/fonts/fredoka-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+.sky-bg {
+  background: linear-gradient(to bottom, #bfe8ff 0%, #eaf6ff 45%, #eaf6ff 100%);
+}
+
+/* Fakes a chunky toy-like outlined title: colored fill + dark stroke + soft drop shadow. */
+.title-outline {
+  -webkit-text-stroke: 3px var(--stroke-color, #2b2a55);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 rgba(43, 42, 85, 0.15);
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.5) rotate(-4deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.pop-enter-active {
+  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
