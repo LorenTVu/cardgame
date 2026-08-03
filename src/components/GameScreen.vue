@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
 import SpinWheel from './SpinWheel.vue'
+import HotPotatoGame from './HotPotatoGame.vue'
 
 const {
   state,
@@ -9,6 +10,8 @@ const {
   remainingCount,
   drawQuestion,
   drawWildCard,
+  drawMysteryBox,
+  chooseNextPlayer,
   nextTurn,
   backToSetup,
   resolveSpin,
@@ -32,6 +35,23 @@ const CARD_META = {
   wild: { label: '🎲 Wild Card', badgeClass: 'badge-success' },
 }
 
+const currentCardBadge = computed(() => {
+  const q = state.currentQuestion
+  if (!q) return null
+  const base = CARD_META[q.type]
+  if (q.isMystery) {
+    return { label: `🎁 Mystery · ${base.label.replace(/^\S+\s/, '')}`, badgeClass: 'badge-neutral' }
+  }
+  return base
+})
+
+const otherPlayers = computed(() =>
+  state.players
+    .map((name, index) => ({ name, index }))
+    .filter((p) => p.index !== state.currentPlayerIndex),
+)
+
+// --- Spin Wheel confirmation ---
 const pendingWinnerIndex = ref(null)
 const pendingWinnerName = ref('')
 
@@ -44,6 +64,23 @@ function confirmWinner() {
   resolveSpin(pendingWinnerIndex.value)
   pendingWinnerIndex.value = null
   pendingWinnerName.value = ''
+}
+
+// --- Mystery Box ---
+const showNextPlayerPicker = ref(false)
+
+function completeMysteryBox() {
+  if (state.players.length < 2) {
+    state.currentQuestion = null
+    nextTurn()
+    return
+  }
+  showNextPlayerPicker.value = true
+}
+
+function pickNextPlayer(index) {
+  chooseNextPlayer(index)
+  showNextPlayerPicker.value = false
 }
 </script>
 
@@ -58,7 +95,7 @@ function confirmWinner() {
       </div>
     </header>
 
-    <template v-if="state.mode === 'random' && state.awaitingSpin">
+    <template v-if="state.gameStyle === 'random' && state.awaitingSpin">
       <div class="flex flex-1 flex-col items-center justify-center gap-8 py-4">
         <h1 class="font-display title-outline text-center text-2xl text-white">
           Spin for<br />Next Player
@@ -84,19 +121,23 @@ function confirmWinner() {
       </div>
     </template>
 
+    <template v-else-if="state.gameStyle === 'hotpotato'">
+      <HotPotatoGame />
+    </template>
+
     <template v-else>
       <div class="text-center">
         <p class="font-display text-sm uppercase tracking-widest text-secondary">Current Turn</p>
         <div class="mt-2 flex items-center justify-center gap-3">
           <span
-            v-if="state.mode === 'order' && prevPlayerName"
+            v-if="state.gameStyle === 'order' && prevPlayerName"
             class="font-display text-xs text-base-content/40"
           >
             ← {{ prevPlayerName }}
           </span>
           <h1 class="font-display title-outline text-4xl text-white">{{ currentPlayer }}</h1>
           <span
-            v-if="state.mode === 'order' && nextPlayerName"
+            v-if="state.gameStyle === 'order' && nextPlayerName"
             class="font-display text-xs text-base-content/40"
           >
             {{ nextPlayerName }} →
@@ -108,37 +149,72 @@ function confirmWinner() {
         <div class="flex h-full items-center justify-center p-6 text-center">
           <Transition name="pop" mode="out-in">
             <div v-if="state.currentQuestion" :key="state.currentQuestion.id" class="flex flex-col items-center gap-4">
-              <span
-                class="font-display badge badge-lg px-4 py-4"
-                :class="CARD_META[state.currentQuestion.type].badgeClass"
-              >
-                {{ CARD_META[state.currentQuestion.type].label }}
+              <span class="font-display badge badge-lg px-4 py-4" :class="currentCardBadge.badgeClass">
+                {{ currentCardBadge.label }}
               </span>
               <p class="text-2xl font-medium leading-snug">{{ state.currentQuestion.text }}</p>
             </div>
             <p v-else key="empty" class="font-display text-base leading-relaxed text-base-content/60">
-              Pick Truth, Dare,<br />or a Wild Card
+              Pick Truth, Dare,<br />or something wilder
             </p>
           </Transition>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <button type="button" class="btn btn-lg btn-secondary font-display" @click="drawQuestion('truth')">
-          📜 Truth
+      <template v-if="state.currentQuestion?.isMystery">
+        <button type="button" class="btn btn-lg btn-success font-display" @click="completeMysteryBox">
+          ✅ Completed! Choose Who's Next
         </button>
-        <button type="button" class="btn btn-lg btn-primary font-display" @click="drawQuestion('dare')">
-          🔥 Dare
+      </template>
+
+      <template v-else>
+        <div class="grid grid-cols-2 gap-4">
+          <button type="button" class="btn btn-lg btn-secondary font-display" @click="drawQuestion('truth')">
+            📜 Truth
+          </button>
+          <button type="button" class="btn btn-lg btn-primary font-display" @click="drawQuestion('dare')">
+            🔥 Dare
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <button type="button" class="btn btn-lg btn-success font-display" @click="drawWildCard">
+            🎲 Wild Card
+          </button>
+          <button type="button" class="btn btn-lg btn-neutral font-display" @click="drawMysteryBox">
+            🎁 Mystery Box
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-lg btn-warning font-display" @click="nextTurn">
+          Next Player →
         </button>
-      </div>
-
-      <button type="button" class="btn btn-lg btn-success font-display" @click="drawWildCard">
-        🎲 Wild Card
-      </button>
-
-      <button type="button" class="btn btn-lg btn-warning font-display" @click="nextTurn">
-        Next Player →
-      </button>
+      </template>
     </template>
+
+    <div
+      v-if="showNextPlayerPicker"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-neutral/40 p-4"
+    >
+      <Transition name="pop" appear>
+        <div
+          class="rounded-box border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.2)]"
+        >
+          <p class="font-display text-sm uppercase tracking-widest text-secondary">Assign Next Turn</p>
+          <h2 class="font-display title-outline mt-2 text-2xl text-white">Pick Anyone!</h2>
+          <div class="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              v-for="player in otherPlayers"
+              :key="player.index"
+              type="button"
+              class="btn btn-secondary font-display"
+              @click="pickNextPlayer(player.index)"
+            >
+              {{ player.name }}
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>

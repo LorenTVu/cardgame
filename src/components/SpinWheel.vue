@@ -49,8 +49,8 @@ const labelMaxChars = computed(() => {
 
 const wheelFilter = computed(() => {
   const spread = 10 + glow.value * 18
-  const alpha = 0.2 + glow.value * 0.6
-  return `drop-shadow(0 6px 0 rgba(43,42,85,0.2)) drop-shadow(0 0 ${spread}px rgba(255,205,60,${alpha}))`
+  const alpha = 0.25 + glow.value * 0.65
+  return `drop-shadow(0 0 ${spread}px rgba(255,205,60,${alpha}))`
 })
 
 // Angle 0 = top (12 o'clock), increasing clockwise — matches on-screen rotation direction.

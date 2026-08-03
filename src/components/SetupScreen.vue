@@ -2,10 +2,24 @@
 import { ref } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
 
-const { state, allCategories, canStart, addPlayer, removePlayer, toggleCategory, setMode, startGame } =
-  useGameStore()
+const {
+  state,
+  allCategories,
+  canStart,
+  addPlayer,
+  removePlayer,
+  toggleCategory,
+  setGameStyle,
+  startGame,
+} = useGameStore()
 
 const newPlayerName = ref('')
+
+const GAME_STYLES = [
+  { id: 'order', icon: '➡️', label: 'In Order', description: 'Take turns in the order you added players.' },
+  { id: 'random', icon: '🎡', label: 'Random Spin', description: 'Spin a wheel to pick who\'s up next.' },
+  { id: 'hotpotato', icon: '🥔', label: 'Hot Potato', description: 'Pass the device before a hidden timer goes off!' },
+]
 
 function handleAddPlayer() {
   addPlayer(newPlayerName.value)
@@ -85,23 +99,23 @@ function handleAddPlayer() {
 
     <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
       <div class="flex flex-col gap-3 p-4">
-        <h2 class="font-display text-lg text-secondary">Turn Order</h2>
-        <div class="join w-full">
+        <h2 class="font-display text-lg text-secondary">Game Style</h2>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <button
+            v-for="style in GAME_STYLES"
+            :key="style.id"
             type="button"
-            class="btn join-item font-display flex-1"
-            :class="state.mode === 'order' ? 'btn-warning' : 'btn-ghost'"
-            @click="setMode('order')"
+            class="flex flex-col items-center gap-1 rounded-field border-2 px-3 py-3 text-center transition-colors"
+            :class="
+              state.gameStyle === style.id
+                ? 'border-warning bg-warning/20'
+                : 'border-base-300 bg-base-100'
+            "
+            @click="setGameStyle(style.id)"
           >
-            In Order
-          </button>
-          <button
-            type="button"
-            class="btn join-item font-display flex-1"
-            :class="state.mode === 'random' ? 'btn-warning' : 'btn-ghost'"
-            @click="setMode('random')"
-          >
-            🎡 Random Spin
+            <span class="text-2xl">{{ style.icon }}</span>
+            <span class="font-display text-sm">{{ style.label }}</span>
+            <span class="text-xs leading-snug text-base-content/60">{{ style.description }}</span>
           </button>
         </div>
       </div>

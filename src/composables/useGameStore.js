@@ -7,7 +7,7 @@ const state = reactive({
   screen: 'setup', // 'setup' | 'game'
   players: [],
   selectedCategories: [],
-  mode: 'order', // 'order' | 'random'
+  gameStyle: 'order', // 'order' | 'random' | 'hotpotato'
   currentPlayerIndex: 0,
   awaitingSpin: false,
   drawnIds: new Set(),
@@ -15,7 +15,7 @@ const state = reactive({
 })
 
 function needsSpinFor(playerCount) {
-  return state.mode === 'random' && playerCount > 1
+  return state.gameStyle === 'random' && playerCount > 1
 }
 
 function addPlayer(name) {
@@ -34,8 +34,8 @@ function toggleCategory(category) {
   else state.selectedCategories.splice(i, 1)
 }
 
-function setMode(mode) {
-  state.mode = mode
+function setGameStyle(gameStyle) {
+  state.gameStyle = gameStyle
 }
 
 const canStart = computed(
@@ -110,6 +110,25 @@ function drawWildCard() {
   state.currentQuestion = { id: `wild-${state.players.length}-${Math.random()}`, type: 'wild', text }
 }
 
+// Mystery Box ignores the category filter entirely — any question, any category.
+function drawMysteryBox() {
+  let pool = questionsData.filter((q) => !state.drawnIds.has(q.id))
+  if (pool.length === 0) {
+    state.drawnIds.clear()
+    pool = questionsData
+  }
+  const question = pool[Math.floor(Math.random() * pool.length)]
+  state.drawnIds.add(question.id)
+  state.currentQuestion = { ...question, isMystery: true }
+}
+
+// Lets the current player hand the next turn to anyone, bypassing order/random-spin for one round.
+function chooseNextPlayer(index) {
+  state.currentPlayerIndex = index
+  state.awaitingSpin = false
+  state.currentQuestion = null
+}
+
 function nextTurn() {
   state.currentQuestion = null
   if (state.players.length === 0) return
@@ -131,12 +150,14 @@ export function useGameStore() {
     addPlayer,
     removePlayer,
     toggleCategory,
-    setMode,
+    setGameStyle,
     startGame,
     backToSetup,
     resolveSpin,
     drawQuestion,
     drawWildCard,
+    drawMysteryBox,
+    chooseNextPlayer,
     nextTurn,
   }
 }

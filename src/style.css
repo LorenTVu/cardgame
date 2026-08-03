@@ -85,3 +85,17 @@ body {
 .pop-enter-active {
   animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+@keyframes urgent-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 14px 4px rgba(255, 90, 95, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 32px 12px rgba(255, 90, 95, 0.95);
+  }
+}
+
+.glow-urgent {
+  animation: urgent-glow 0.9s ease-in-out infinite;
+}
