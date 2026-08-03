@@ -2,7 +2,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/cardgame/' : '/',
   plugins: [
     vue(),
     VitePWA({
@@ -33,4 +34,4 @@ export default defineConfig({
       },
     }),
   ],
-})
+}))
