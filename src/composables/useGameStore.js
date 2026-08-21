@@ -2,16 +2,20 @@ import { reactive, computed } from 'vue'
 import questionsData from '../data/questions.json'
 
 const allCategories = [...new Set(questionsData.flatMap((q) => q.categories))].sort()
+const allDifficulties = ['easy', 'medium', 'hard']
 
 const state = reactive({
   screen: 'setup', // 'setup' | 'game'
   players: [],
   selectedCategories: [],
+  // Which difficulties count as "on" for each category — defaults to all three.
+  categoryDifficulties: Object.fromEntries(allCategories.map((c) => [c, [...allDifficulties]])),
   gameStyle: 'order', // 'order' | 'random' | 'hotpotato'
   currentPlayerIndex: 0,
   awaitingSpin: false,
   drawnIds: new Set(),
   currentQuestion: null,
+  passBuckUsed: new Set(), // indices of players who've used their one Pass the Buck
 })
 
 function needsSpinFor(playerCount) {
@@ -34,12 +38,23 @@ function toggleCategory(category) {
   else state.selectedCategories.splice(i, 1)
 }
 
+function toggleCategoryDifficulty(category, difficulty) {
+  const list = state.categoryDifficulties[category]
+  if (!list) return
+  const i = list.indexOf(difficulty)
+  if (i === -1) list.push(difficulty)
+  else list.splice(i, 1)
+}
+
 function setGameStyle(gameStyle) {
   state.gameStyle = gameStyle
 }
 
 const canStart = computed(
-  () => state.players.length >= 1 && state.selectedCategories.length >= 1,
+  () =>
+    state.players.length >= 1 &&
+    state.selectedCategories.length >= 1 &&
+    state.selectedCategories.some((c) => state.categoryDifficulties[c]?.length > 0),
 )
 
 function startGame() {
@@ -52,6 +67,7 @@ function startGame() {
     state.awaitingSpin = false
   }
   state.drawnIds.clear()
+  state.passBuckUsed.clear()
   state.currentQuestion = null
   state.screen = 'game'
 }
@@ -72,7 +88,11 @@ function questionsPool(type) {
   return questionsData.filter(
     (q) =>
       q.type === type &&
-      q.categories.some((c) => state.selectedCategories.includes(c)) &&
+      q.categories.some(
+        (c) =>
+          state.selectedCategories.includes(c) &&
+          state.categoryDifficulties[c]?.includes(q.difficulty),
+      ) &&
       !state.drawnIds.has(q.id),
   )
 }
@@ -122,6 +142,14 @@ function drawMysteryBox() {
   state.currentQuestion = { ...question, isMystery: true }
 }
 
+// Forces the drawn card onto another player. Each player index may only do this once per game.
+function passTheBuck(passerIndex, targetIndex) {
+  state.passBuckUsed.add(passerIndex)
+  if (state.currentQuestion) {
+    state.currentQuestion.passedTo = targetIndex
+  }
+}
+
 // Lets the current player hand the next turn to anyone, bypassing order/random-spin for one round.
 function chooseNextPlayer(index) {
   state.currentPlayerIndex = index
@@ -144,12 +172,14 @@ export function useGameStore() {
   return {
     state,
     allCategories,
+    allDifficulties,
     canStart,
     currentPlayer,
     remainingCount,
     addPlayer,
     removePlayer,
     toggleCategory,
+    toggleCategoryDifficulty,
     setGameStyle,
     startGame,
     backToSetup,
@@ -158,6 +188,7 @@ export function useGameStore() {
     drawWildCard,
     drawMysteryBox,
     chooseNextPlayer,
+    passTheBuck,
     nextTurn,
   }
 }

@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
+import PlayerPickerDialog from './PlayerPickerDialog.vue'
 
-const { state, drawQuestion } = useGameStore()
+const { state, drawQuestion, passTheBuck } = useGameStore()
 
 const MIN_MS = 5000
 const MAX_MS = 20000
@@ -14,6 +15,46 @@ let timer = null
 const CARD_META = {
   truth: { label: '📜 Truth', badgeClass: 'badge-secondary' },
   dare: { label: '🔥 Dare', badgeClass: 'badge-primary' },
+}
+
+const passedToName = computed(() => {
+  const to = state.currentQuestion?.passedTo
+  return to == null ? '' : state.players[to]
+})
+
+const eligiblePassers = computed(() =>
+  state.players
+    .map((name, index) => ({ name, index }))
+    .filter((p) => !state.passBuckUsed.has(p.index)),
+)
+
+const canPassBuck = computed(
+  () =>
+    !!state.currentQuestion &&
+    state.currentQuestion.passedTo == null &&
+    state.players.length > 1 &&
+    eligiblePassers.value.length > 0,
+)
+
+// --- Pass the Buck (two-step: who's using it, then who it goes to) ---
+const passBuckStep = ref('none') // 'none' | 'choosing-passer' | 'choosing-target'
+const chosenPasserIndex = ref(null)
+
+const targetsForPasser = computed(() =>
+  state.players
+    .map((name, index) => ({ name, index }))
+    .filter((p) => p.index !== chosenPasserIndex.value),
+)
+
+function pickPasser(index) {
+  chosenPasserIndex.value = index
+  passBuckStep.value = 'choosing-target'
+}
+
+function pickPassBuckTarget(index) {
+  passTheBuck(chosenPasserIndex.value, index)
+  passBuckStep.value = 'none'
+  chosenPasserIndex.value = null
 }
 
 function start() {
@@ -87,11 +128,40 @@ onUnmounted(cancelTimer)
         >
           {{ CARD_META[state.currentQuestion.type].label }}
         </span>
+        <p v-if="passedToName" class="font-display mt-2 text-sm text-error">
+          🔄 Passed to {{ passedToName }}!
+        </p>
         <p class="mt-4 text-xl font-medium leading-snug">{{ state.currentQuestion.text }}</p>
       </div>
+
+      <button
+        v-if="canPassBuck"
+        type="button"
+        class="btn btn-outline btn-error btn-sm font-display"
+        @click="passBuckStep = 'choosing-passer'"
+      >
+        🔄 Pass the Buck
+      </button>
+
       <button type="button" class="btn btn-lg btn-warning font-display" @click="start">
         Next Round →
       </button>
     </template>
+
+    <PlayerPickerDialog
+      v-if="passBuckStep === 'choosing-passer'"
+      title="Pass the Buck"
+      subtitle="Who's using their pass?"
+      :players="eligiblePassers"
+      @pick="pickPasser"
+    />
+
+    <PlayerPickerDialog
+      v-if="passBuckStep === 'choosing-target'"
+      title="Pass the Buck"
+      subtitle="Who do they pass it to?"
+      :players="targetsForPasser"
+      @pick="pickPassBuckTarget"
+    />
   </div>
 </template>

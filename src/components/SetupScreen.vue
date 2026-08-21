@@ -9,6 +9,7 @@ const {
   addPlayer,
   removePlayer,
   toggleCategory,
+  toggleCategoryDifficulty,
   setGameStyle,
   startGame,
 } = useGameStore()
@@ -16,9 +17,15 @@ const {
 const newPlayerName = ref('')
 
 const GAME_STYLES = [
-  { id: 'order', icon: '➡️', label: 'In Order', description: 'Take turns in the order you added players.' },
-  { id: 'random', icon: '🎡', label: 'Random Spin', description: 'Spin a wheel to pick who\'s up next.' },
-  { id: 'hotpotato', icon: '🥔', label: 'Hot Potato', description: 'Pass the device before a hidden timer goes off!' },
+  { id: 'order', label: '➡️ In Order' },
+  { id: 'random', label: '🎡 Random Spin' },
+  { id: 'hotpotato', label: '🥔 Hot Potato' },
+]
+
+const DIFFICULTIES = [
+  { id: 'easy', label: 'Easy', activeClass: 'btn-success' },
+  { id: 'medium', label: 'Medium', activeClass: 'btn-warning' },
+  { id: 'hard', label: 'Hard', activeClass: 'btn-error' },
 ]
 
 function handleAddPlayer() {
@@ -79,20 +86,34 @@ function handleAddPlayer() {
     <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
       <div class="flex flex-col gap-3 p-4">
         <h2 class="font-display text-lg text-secondary">Categories</h2>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <label
+        <div class="flex flex-col gap-2">
+          <div
             v-for="category in allCategories"
             :key="category"
-            class="label cursor-pointer justify-start gap-2 rounded-field border-2 border-base-300 bg-base-100 px-3 py-2"
+            class="flex flex-wrap items-center justify-between gap-2 rounded-field border-2 border-base-300 bg-base-100 px-3 py-2"
           >
-            <input
-              type="checkbox"
-              class="checkbox checkbox-warning checkbox-sm"
-              :checked="state.selectedCategories.includes(category)"
-              @change="toggleCategory(category)"
-            />
-            {{ category }}
-          </label>
+            <label class="label cursor-pointer justify-start gap-2 p-0">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-warning checkbox-sm"
+                :checked="state.selectedCategories.includes(category)"
+                @change="toggleCategory(category)"
+              />
+              {{ category }}
+            </label>
+            <div v-if="state.selectedCategories.includes(category)" class="join">
+              <button
+                v-for="diff in DIFFICULTIES"
+                :key="diff.id"
+                type="button"
+                class="btn join-item btn-xs font-display"
+                :class="state.categoryDifficulties[category]?.includes(diff.id) ? diff.activeClass : 'btn-ghost'"
+                @click="toggleCategoryDifficulty(category, diff.id)"
+              >
+                {{ diff.label }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -100,22 +121,16 @@ function handleAddPlayer() {
     <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
       <div class="flex flex-col gap-3 p-4">
         <h2 class="font-display text-lg text-secondary">Game Style</h2>
-        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div class="flex flex-wrap justify-center gap-2">
           <button
             v-for="style in GAME_STYLES"
             :key="style.id"
             type="button"
-            class="flex flex-col items-center gap-1 rounded-field border-2 px-3 py-3 text-center transition-colors"
-            :class="
-              state.gameStyle === style.id
-                ? 'border-warning bg-warning/20'
-                : 'border-base-300 bg-base-100'
-            "
+            class="btn font-display"
+            :class="state.gameStyle === style.id ? 'btn-warning' : 'btn-ghost'"
             @click="setGameStyle(style.id)"
           >
-            <span class="text-2xl">{{ style.icon }}</span>
-            <span class="font-display text-sm">{{ style.label }}</span>
-            <span class="text-xs leading-snug text-base-content/60">{{ style.description }}</span>
+            {{ style.label }}
           </button>
         </div>
       </div>

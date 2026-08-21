@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
 import SpinWheel from './SpinWheel.vue'
 import HotPotatoGame from './HotPotatoGame.vue'
+import PlayerPickerDialog from './PlayerPickerDialog.vue'
 
 const {
   state,
@@ -12,6 +13,7 @@ const {
   drawWildCard,
   drawMysteryBox,
   chooseNextPlayer,
+  passTheBuck,
   nextTurn,
   backToSetup,
   resolveSpin,
@@ -51,6 +53,20 @@ const otherPlayers = computed(() =>
     .filter((p) => p.index !== state.currentPlayerIndex),
 )
 
+const passedToName = computed(() => {
+  const to = state.currentQuestion?.passedTo
+  return to == null ? '' : state.players[to]
+})
+
+const canPassBuck = computed(
+  () =>
+    !!state.currentQuestion &&
+    !state.currentQuestion.isMystery &&
+    state.currentQuestion.passedTo == null &&
+    !state.passBuckUsed.has(state.currentPlayerIndex) &&
+    otherPlayers.value.length > 0,
+)
+
 // --- Spin Wheel confirmation ---
 const pendingWinnerIndex = ref(null)
 const pendingWinnerName = ref('')
@@ -81,6 +97,14 @@ function completeMysteryBox() {
 function pickNextPlayer(index) {
   chooseNextPlayer(index)
   showNextPlayerPicker.value = false
+}
+
+// --- Pass the Buck ---
+const showPassBuckPicker = ref(false)
+
+function pickPassBuckTarget(index) {
+  passTheBuck(state.currentPlayerIndex, index)
+  showPassBuckPicker.value = false
 }
 </script>
 
@@ -152,6 +176,9 @@ function pickNextPlayer(index) {
               <span class="font-display badge badge-lg px-4 py-4" :class="currentCardBadge.badgeClass">
                 {{ currentCardBadge.label }}
               </span>
+              <p v-if="passedToName" class="font-display text-sm text-error">
+                🔄 Passed to {{ passedToName }}!
+              </p>
               <p class="text-2xl font-medium leading-snug">{{ state.currentQuestion.text }}</p>
             </div>
             <p v-else key="empty" class="font-display text-base leading-relaxed text-base-content/60">
@@ -159,6 +186,16 @@ function pickNextPlayer(index) {
             </p>
           </Transition>
         </div>
+      </div>
+
+      <div v-if="canPassBuck" class="flex justify-center">
+        <button
+          type="button"
+          class="btn btn-outline btn-error btn-sm font-display"
+          @click="showPassBuckPicker = true"
+        >
+          🔄 Pass the Buck
+        </button>
       </div>
 
       <template v-if="state.currentQuestion?.isMystery">
@@ -192,29 +229,20 @@ function pickNextPlayer(index) {
       </template>
     </template>
 
-    <div
+    <PlayerPickerDialog
       v-if="showNextPlayerPicker"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-neutral/40 p-4"
-    >
-      <Transition name="pop" appear>
-        <div
-          class="rounded-box border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.2)]"
-        >
-          <p class="font-display text-sm uppercase tracking-widest text-secondary">Assign Next Turn</p>
-          <h2 class="font-display title-outline mt-2 text-2xl text-white">Pick Anyone!</h2>
-          <div class="mt-4 flex flex-wrap justify-center gap-2">
-            <button
-              v-for="player in otherPlayers"
-              :key="player.index"
-              type="button"
-              class="btn btn-secondary font-display"
-              @click="pickNextPlayer(player.index)"
-            >
-              {{ player.name }}
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </div>
+      title="Assign Next Turn"
+      subtitle="Pick Anyone!"
+      :players="otherPlayers"
+      @pick="pickNextPlayer"
+    />
+
+    <PlayerPickerDialog
+      v-if="showPassBuckPicker"
+      title="Pass the Buck"
+      subtitle="Who has to do it instead?"
+      :players="otherPlayers"
+      @pick="pickPassBuckTarget"
+    />
   </div>
 </template>
