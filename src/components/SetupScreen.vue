@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
+import AddCustomQuestionForm from './AddCustomQuestionForm.vue'
 
 const {
   state,
@@ -10,7 +11,9 @@ const {
   removePlayer,
   toggleCategory,
   toggleCategoryDifficulty,
+  toggleNeverDifficulty,
   setGameStyle,
+  removeCustomQuestion,
   startGame,
 } = useGameStore()
 
@@ -20,6 +23,7 @@ const GAME_STYLES = [
   { id: 'order', label: '➡️ In Order' },
   { id: 'random', label: '🎡 Random Spin' },
   { id: 'hotpotato', label: '🥔 Hot Potato' },
+  { id: 'neverhaveiever', label: '🤐 Never Have I Ever' },
 ]
 
 const DIFFICULTIES = [
@@ -27,6 +31,8 @@ const DIFFICULTIES = [
   { id: 'medium', label: 'Medium', activeClass: 'btn-warning' },
   { id: 'hard', label: 'Hard', activeClass: 'btn-error' },
 ]
+
+const CUSTOM_TYPE_ICON = { truth: '📜', dare: '🔥', never: '🤐' }
 
 function handleAddPlayer() {
   addPlayer(newPlayerName.value)
@@ -83,7 +89,10 @@ function handleAddPlayer() {
       </div>
     </section>
 
-    <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
+    <section
+      v-if="state.gameStyle !== 'neverhaveiever'"
+      class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]"
+    >
       <div class="flex flex-col gap-3 p-4">
         <h2 class="font-display text-lg text-secondary">Categories</h2>
         <div class="flex flex-col gap-2">
@@ -115,6 +124,51 @@ function handleAddPlayer() {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section
+      v-else
+      class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]"
+    >
+      <div class="flex flex-col gap-3 p-4">
+        <h2 class="font-display text-lg text-secondary">Never Have I Ever Difficulty</h2>
+        <div class="join">
+          <button
+            v-for="diff in DIFFICULTIES"
+            :key="diff.id"
+            type="button"
+            class="btn join-item font-display flex-1"
+            :class="state.neverHaveIEverDifficulties.includes(diff.id) ? diff.activeClass : 'btn-ghost'"
+            @click="toggleNeverDifficulty(diff.id)"
+          >
+            {{ diff.label }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
+      <div class="flex flex-col gap-3 p-4">
+        <h2 class="font-display text-lg text-secondary">Custom Questions</h2>
+        <AddCustomQuestionForm />
+        <ul v-if="state.customQuestions.length" class="flex flex-col gap-1">
+          <li
+            v-for="q in state.customQuestions"
+            :key="q.id"
+            class="flex items-center justify-between gap-2 rounded-field bg-base-100 px-3 py-2 text-sm"
+          >
+            <span>{{ CUSTOM_TYPE_ICON[q.type] }} {{ q.text }}</span>
+            <button
+              type="button"
+              class="text-error shrink-0"
+              aria-label="Remove custom question"
+              @click="removeCustomQuestion(q.id)"
+            >
+              ✕
+            </button>
+          </li>
+        </ul>
       </div>
     </section>
 

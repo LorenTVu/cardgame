@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
+import { useSound } from '../composables/useSound'
 import PlayerPickerDialog from './PlayerPickerDialog.vue'
 
 const { state, drawQuestion, passTheBuck } = useGameStore()
+const { playTick, playExplosion } = useSound()
 
 const MIN_MS = 5000
 const MAX_MS = 20000
@@ -67,12 +69,14 @@ function start() {
 
 function pass() {
   passes.value++
+  playTick()
 }
 
 function explode() {
   timer = null
   phase.value = 'exploded'
   drawQuestion(Math.random() < 0.5 ? 'truth' : 'dare')
+  playExplosion()
 }
 
 function cancelTimer() {

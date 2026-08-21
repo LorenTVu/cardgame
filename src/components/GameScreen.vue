@@ -1,14 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
+import { useSound } from '../composables/useSound'
 import SpinWheel from './SpinWheel.vue'
 import HotPotatoGame from './HotPotatoGame.vue'
+import NeverHaveIEverGame from './NeverHaveIEverGame.vue'
 import PlayerPickerDialog from './PlayerPickerDialog.vue'
+import AddCustomQuestionForm from './AddCustomQuestionForm.vue'
 
 const {
   state,
   currentPlayer,
   remainingCount,
+  remainingNever,
   drawQuestion,
   drawWildCard,
   drawMysteryBox,
@@ -17,7 +21,10 @@ const {
   nextTurn,
   backToSetup,
   resolveSpin,
+  toggleSound,
 } = useGameStore()
+
+const { playReveal, playMystery, playLanding } = useSound()
 
 const prevPlayerName = computed(() => {
   const n = state.players.length
@@ -67,6 +74,21 @@ const canPassBuck = computed(
     otherPlayers.value.length > 0,
 )
 
+function handleDraw(type) {
+  drawQuestion(type)
+  playReveal()
+}
+
+function handleDrawWildCard() {
+  drawWildCard()
+  playReveal()
+}
+
+function handleDrawMysteryBox() {
+  drawMysteryBox()
+  playMystery()
+}
+
 // --- Spin Wheel confirmation ---
 const pendingWinnerIndex = ref(null)
 const pendingWinnerName = ref('')
@@ -74,6 +96,7 @@ const pendingWinnerName = ref('')
 function onWheelLanded(index) {
   pendingWinnerIndex.value = index
   pendingWinnerName.value = state.players[index]
+  playLanding()
 }
 
 function confirmWinner() {
@@ -106,16 +129,40 @@ function pickPassBuckTarget(index) {
   passTheBuck(state.currentPlayerIndex, index)
   showPassBuckPicker.value = false
 }
+
+// --- Add custom question mid-game ---
+const showAddCustom = ref(false)
 </script>
 
 <template>
   <div class="mx-auto flex min-h-full max-w-xl flex-col gap-6 px-4 py-8">
-    <header class="flex items-center justify-between">
+    <header class="flex items-center justify-between gap-2">
       <button type="button" class="btn btn-sm btn-outline font-display" @click="backToSetup">
         ← Setup
       </button>
-      <div class="font-display badge badge-accent">
-        {{ remainingCount.truth }}T · {{ remainingCount.dare }}D left
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-circle btn-sm btn-outline"
+          :aria-label="state.soundEnabled ? 'Mute sound' : 'Unmute sound'"
+          @click="toggleSound"
+        >
+          {{ state.soundEnabled ? '🔊' : '🔇' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-circle btn-sm btn-outline"
+          aria-label="Add a custom question"
+          @click="showAddCustom = true"
+        >
+          ➕
+        </button>
+        <div v-if="state.gameStyle === 'neverhaveiever'" class="font-display badge badge-accent">
+          {{ remainingNever }} left
+        </div>
+        <div v-else class="font-display badge badge-accent">
+          {{ remainingCount.truth }}T · {{ remainingCount.dare }}D left
+        </div>
       </div>
     </header>
 
@@ -147,6 +194,10 @@ function pickPassBuckTarget(index) {
 
     <template v-else-if="state.gameStyle === 'hotpotato'">
       <HotPotatoGame />
+    </template>
+
+    <template v-else-if="state.gameStyle === 'neverhaveiever'">
+      <NeverHaveIEverGame />
     </template>
 
     <template v-else>
@@ -206,19 +257,19 @@ function pickPassBuckTarget(index) {
 
       <template v-else>
         <div class="grid grid-cols-2 gap-4">
-          <button type="button" class="btn btn-lg btn-secondary font-display" @click="drawQuestion('truth')">
+          <button type="button" class="btn btn-lg btn-secondary font-display" @click="handleDraw('truth')">
             📜 Truth
           </button>
-          <button type="button" class="btn btn-lg btn-primary font-display" @click="drawQuestion('dare')">
+          <button type="button" class="btn btn-lg btn-primary font-display" @click="handleDraw('dare')">
             🔥 Dare
           </button>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <button type="button" class="btn btn-lg btn-success font-display" @click="drawWildCard">
+          <button type="button" class="btn btn-lg btn-success font-display" @click="handleDrawWildCard">
             🎲 Wild Card
           </button>
-          <button type="button" class="btn btn-lg btn-neutral font-display" @click="drawMysteryBox">
+          <button type="button" class="btn btn-lg btn-neutral font-display" @click="handleDrawMysteryBox">
             🎁 Mystery Box
           </button>
         </div>
@@ -244,5 +295,23 @@ function pickPassBuckTarget(index) {
       :players="otherPlayers"
       @pick="pickPassBuckTarget"
     />
+
+    <div v-if="showAddCustom" class="fixed inset-0 z-50 flex items-center justify-center bg-neutral/40 p-4">
+      <Transition name="pop" appear>
+        <div
+          class="rounded-box w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 shadow-[0_8px_0_0_rgba(43,42,85,0.2)]"
+        >
+          <p class="font-display mb-2 text-sm uppercase tracking-widest text-secondary">Add Your Own</p>
+          <AddCustomQuestionForm @added="showAddCustom = false" />
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm font-display mt-2 w-full"
+            @click="showAddCustom = false"
+          >
+            Cancel
+          </button>
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
