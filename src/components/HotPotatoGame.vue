@@ -3,6 +3,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useGameStore } from '../composables/useGameStore'
 import { useSound } from '../composables/useSound'
 import PlayerPickerDialog from './PlayerPickerDialog.vue'
+import CategoryTags from './CategoryTags.vue'
 
 const { state, drawQuestion, passTheBuck } = useGameStore()
 const { playTick, playExplosion } = useSound()
@@ -124,8 +125,9 @@ onUnmounted(cancelTimer)
       <p class="font-display text-center text-secondary">Whoever's holding it now...</p>
       <div
         v-if="state.currentQuestion"
-        class="rounded-box w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.15)]"
+        class="rounded-box relative w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.15)]"
       >
+        <CategoryTags :categories="state.currentQuestion.categories" :difficulty="state.currentQuestion.difficulty" />
         <span
           class="font-display badge badge-lg px-4 py-4"
           :class="CARD_META[state.currentQuestion.type].badgeClass"

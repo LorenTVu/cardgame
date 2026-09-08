@@ -1,6 +1,7 @@
 <script setup>
 import { useGameStore } from '../composables/useGameStore'
 import { useSound } from '../composables/useSound'
+import CategoryTags from './CategoryTags.vue'
 
 const { state, remainingNever, drawNeverHaveIEver } = useGameStore()
 const { playReveal } = useSound()
@@ -17,8 +18,13 @@ function handleNext() {
     <p class="font-display text-xs text-base-content/60">{{ remainingNever }} left in the deck</p>
 
     <div
-      class="rounded-box min-h-40 w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.15)]"
+      class="rounded-box relative min-h-40 w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.15)]"
     >
+      <CategoryTags
+        v-if="state.currentNeverStatement"
+        :categories="state.currentNeverStatement.categories"
+        :difficulty="state.currentNeverStatement.difficulty"
+      />
       <div class="flex h-full items-center justify-center">
         <Transition name="pop" mode="out-in">
           <p v-if="state.currentNeverStatement" :key="state.currentNeverStatement.id" class="text-xl font-medium leading-snug">

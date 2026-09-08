@@ -7,6 +7,7 @@ import HotPotatoGame from './HotPotatoGame.vue'
 import NeverHaveIEverGame from './NeverHaveIEverGame.vue'
 import PlayerPickerDialog from './PlayerPickerDialog.vue'
 import AddCustomQuestionForm from './AddCustomQuestionForm.vue'
+import CategoryTags from './CategoryTags.vue'
 
 const {
   state,
@@ -220,7 +221,12 @@ const showAddCustom = ref(false)
         </div>
       </div>
 
-      <div class="rounded-box min-h-64 flex-1 border-4 border-neutral/40 bg-base-200 shadow-[0_8px_0_0_rgba(43,42,85,0.15)]">
+      <div class="rounded-box relative min-h-64 flex-1 border-4 border-neutral/40 bg-base-200 shadow-[0_8px_0_0_rgba(43,42,85,0.15)]">
+        <CategoryTags
+          v-if="state.currentQuestion"
+          :categories="state.currentQuestion.categories"
+          :difficulty="state.currentQuestion.difficulty"
+        />
         <div class="flex h-full items-center justify-center p-6 text-center">
           <Transition name="pop" mode="out-in">
             <div v-if="state.currentQuestion" :key="state.currentQuestion.id" class="flex flex-col items-center gap-4">

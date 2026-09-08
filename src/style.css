@@ -99,3 +99,18 @@ body {
 .glow-urgent {
   animation: urgent-glow 0.9s ease-in-out infinite;
 }
+
+@keyframes pointer-flash {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}

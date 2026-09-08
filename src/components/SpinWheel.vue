@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
+import { useSound } from '../composables/useSound'
 
 const props = defineProps({
   players: {
@@ -9,6 +10,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['landed'])
+const { playTick } = useSound()
 
 const PALETTE = ['#ffb5c2', '#a9ddf0', '#ffe29a', '#b7ecd0', '#d0c6f5']
 const SIZE = 340
@@ -18,10 +20,13 @@ const FRICTION = 1.2 // higher = spins down faster
 const STOP_THRESHOLD = 15 // deg/sec below which we consider it stopped
 const GLOW_START_SPEED = 320 // deg/sec below which the glow starts building
 
+const FLASH_DURATION = 500 // ms — how long the winner flash plays before the result is revealed
+
 const wheelWrapperEl = ref(null)
 const rotation = ref(0)
 const spinning = ref(false)
 const glow = ref(0) // 0..1, ramps up as the spin slows down
+const flashActive = ref(false)
 
 let angularVelocity = 0
 let rafId = null
@@ -29,6 +34,8 @@ let lastTime = 0
 let dragging = false
 let dragLastAngle = 0
 let dragLastTime = 0
+let lastSegmentIndex = 0
+let flashTimeoutId = null
 
 const segmentAngle = computed(() => 360 / props.players.length)
 
@@ -104,6 +111,14 @@ const wedges = computed(() =>
   }),
 )
 
+function tickIfCrossedBoundary() {
+  const idx = Math.floor(rotation.value / segmentAngle.value)
+  if (idx !== lastSegmentIndex) {
+    lastSegmentIndex = idx
+    playTick()
+  }
+}
+
 function cancelPhysics() {
   if (rafId !== null) {
     cancelAnimationFrame(rafId)
@@ -122,6 +137,7 @@ function step(now) {
   lastTime = now
   rotation.value += angularVelocity * dt
   angularVelocity *= Math.exp(-FRICTION * dt)
+  tickIfCrossedBoundary()
 
   const speed = Math.abs(angularVelocity)
   glow.value = dragging ? 0 : Math.max(0, Math.min(1, 1 - speed / GLOW_START_SPEED))
@@ -142,7 +158,21 @@ function finishSpin() {
   const mod = ((rotation.value % 360) + 360) % 360
   const angleAtPointer = (360 - mod) % 360
   const index = Math.floor(angleAtPointer / seg) % props.players.length
-  emit('landed', index)
+
+  flashActive.value = true
+  flashTimeoutId = setTimeout(() => {
+    flashActive.value = false
+    flashTimeoutId = null
+    emit('landed', index)
+  }, FLASH_DURATION)
+}
+
+function cancelFlash() {
+  if (flashTimeoutId) {
+    clearTimeout(flashTimeoutId)
+    flashTimeoutId = null
+  }
+  flashActive.value = false
 }
 
 function spinFromButton() {
@@ -164,10 +194,12 @@ function onWheelScroll(e) {
 function onPointerDown(e) {
   if (props.players.length < 2) return
   cancelPhysics()
+  cancelFlash()
   dragging = true
   spinning.value = false
   angularVelocity = 0
   glow.value = 0
+  lastSegmentIndex = Math.floor(rotation.value / segmentAngle.value)
   const rect = wheelWrapperEl.value.getBoundingClientRect()
   dragLastAngle = angleFromEvent(e, rect)
   dragLastTime = performance.now()
@@ -185,6 +217,7 @@ function onPointerMove(e) {
   angularVelocity = delta / dt
   dragLastAngle = angle
   dragLastTime = now
+  tickIfCrossedBoundary()
 }
 
 function onPointerUp() {
@@ -194,7 +227,10 @@ function onPointerUp() {
   startPhysics()
 }
 
-onUnmounted(cancelPhysics)
+onUnmounted(() => {
+  cancelPhysics()
+  cancelFlash()
+})
 </script>
 
 <template>
@@ -209,8 +245,8 @@ onUnmounted(cancelPhysics)
       @pointercancel="onPointerUp"
       @wheel="onWheelScroll"
     >
-      <div class="h-full w-full" :style="{ transform: `rotate(${rotation}deg)` }">
-        <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="h-full w-full" :style="{ filter: wheelFilter }">
+      <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="h-full w-full">
+        <g :transform="`rotate(${rotation} ${CENTER} ${CENTER})`" :style="{ filter: wheelFilter }">
           <circle :cx="CENTER" :cy="CENTER" :r="RADIUS" fill="#ffffff" stroke="#ffcd3c" stroke-width="7" />
           <path
             v-for="(wedge, i) in wedges"
@@ -235,13 +271,28 @@ onUnmounted(cancelPhysics)
           >
             {{ wedge.name }}
           </text>
-        </svg>
-      </div>
+        </g>
+      </svg>
 
       <!-- fixed pointer -->
       <div
         class="pointer-events-none absolute left-1/2 top-0 z-10 h-0 w-0 -translate-x-1/2 -translate-y-1"
         style="border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #6c63b5"
+      />
+
+      <!-- winner flash — bursts right where the pointer meets the wheel the instant it lands -->
+      <div
+        v-if="flashActive"
+        class="pointer-events-none absolute left-1/2 top-0 z-20 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style="
+          background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.95) 0%,
+            rgba(255, 205, 60, 0.75) 40%,
+            rgba(255, 205, 60, 0) 75%
+          );
+          animation: pointer-flash 0.5s ease-out forwards;
+        "
       />
 
       <!-- center hub / spin button -->

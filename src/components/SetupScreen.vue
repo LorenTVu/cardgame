@@ -12,7 +12,6 @@ const {
   removePlayer,
   toggleCategory,
   toggleCategoryDifficulty,
-  toggleNeverDifficulty,
   setGameStyle,
   removeCustomQuestion,
   startGame,
@@ -114,10 +113,7 @@ function handleAddPlayer() {
       </div>
 
       <div class="flex flex-col gap-6">
-        <section
-          v-if="state.gameStyle !== 'neverhaveiever'"
-          class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]"
-        >
+        <section class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]">
           <div class="flex flex-col gap-3 p-4">
             <h2 class="font-display text-lg text-secondary">Categories</h2>
             <div class="flex flex-col gap-2">
@@ -155,27 +151,6 @@ function handleAddPlayer() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          v-else
-          class="rounded-box border-4 border-neutral/40 bg-base-200 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]"
-        >
-          <div class="flex flex-col gap-3 p-4">
-            <h2 class="font-display text-lg text-secondary">Never Have I Ever Difficulty</h2>
-            <div class="join">
-              <button
-                v-for="diff in DIFFICULTIES"
-                :key="diff.id"
-                type="button"
-                class="btn join-item font-display flex-1"
-                :class="state.neverHaveIEverDifficulties.includes(diff.id) ? diff.activeClass : 'btn-ghost'"
-                @click="toggleNeverDifficulty(diff.id)"
-              >
-                {{ diff.label }}
-              </button>
             </div>
           </div>
         </section>

@@ -28,7 +28,6 @@ const state = reactive({
   selectedCategories: (persisted?.selectedCategories ?? []).filter((c) => allCategories.includes(c)),
   // Which difficulties count as "on" for each category — defaults to all three.
   categoryDifficulties: { ...defaultCategoryDifficulties, ...(persisted?.categoryDifficulties ?? {}) },
-  neverHaveIEverDifficulties: persisted?.neverHaveIEverDifficulties ?? [...allDifficulties],
   gameStyle: persisted?.gameStyle ?? 'order', // 'order' | 'random' | 'hotpotato' | 'neverhaveiever'
   currentPlayerIndex: persisted?.currentPlayerIndex ?? 0,
   awaitingSpin: persisted?.awaitingSpin ?? false,
@@ -50,7 +49,6 @@ function saveState() {
         players: state.players,
         selectedCategories: state.selectedCategories,
         categoryDifficulties: state.categoryDifficulties,
-        neverHaveIEverDifficulties: state.neverHaveIEverDifficulties,
         gameStyle: state.gameStyle,
         currentPlayerIndex: state.currentPlayerIndex,
         awaitingSpin: state.awaitingSpin,
@@ -98,13 +96,6 @@ function toggleCategoryDifficulty(category, difficulty) {
   else list.splice(i, 1)
 }
 
-function toggleNeverDifficulty(difficulty) {
-  const list = state.neverHaveIEverDifficulties
-  const i = list.indexOf(difficulty)
-  if (i === -1) list.push(difficulty)
-  else list.splice(i, 1)
-}
-
 function setGameStyle(gameStyle) {
   state.gameStyle = gameStyle
 }
@@ -113,14 +104,12 @@ function toggleSound() {
   state.soundEnabled = !state.soundEnabled
 }
 
-const canStart = computed(() => {
-  if (state.players.length === 0) return false
-  if (state.gameStyle === 'neverhaveiever') return state.neverHaveIEverDifficulties.length > 0
-  return (
+const canStart = computed(
+  () =>
+    state.players.length >= 1 &&
     state.selectedCategories.length >= 1 &&
-    state.selectedCategories.some((c) => state.categoryDifficulties[c]?.length > 0)
-  )
-})
+    state.selectedCategories.some((c) => state.categoryDifficulties[c]?.length > 0),
+)
 
 function startGame() {
   if (!canStart.value) return
@@ -155,17 +144,19 @@ function allQuestions() {
   return [...questionsData, ...state.customQuestions.filter((q) => q.type !== 'never')]
 }
 
+// Shared by Truth/Dare and Never Have I Ever — both are tagged with the same category set.
+function matchesCategoryFilter(q) {
+  return q.categories.some(
+    (c) => state.selectedCategories.includes(c) && state.categoryDifficulties[c]?.includes(q.difficulty),
+  )
+}
+
 function questionsPool(type) {
   return allQuestions().filter(
     (q) =>
       q.type === type &&
       // Player-authored questions are always in play, however the category filter is set.
-      (q.categories[0] === 'Custom' ||
-        q.categories.some(
-          (c) =>
-            state.selectedCategories.includes(c) &&
-            state.categoryDifficulties[c]?.includes(q.difficulty),
-        )) &&
+      (q.categories[0] === 'Custom' || matchesCategoryFilter(q)) &&
       !state.drawnIds.has(q.id),
   )
 }
@@ -222,8 +213,8 @@ function customNeverStatements() {
 }
 
 function neverPool() {
-  const builtin = neverHaveIEverData.filter((q) => state.neverHaveIEverDifficulties.includes(q.difficulty))
-  // Player-authored statements are always in play, regardless of the difficulty filter.
+  const builtin = neverHaveIEverData.filter(matchesCategoryFilter)
+  // Player-authored statements are always in play, regardless of the category filter.
   return [...builtin, ...customNeverStatements()].filter((q) => !state.neverDrawnIds.has(q.id))
 }
 
@@ -231,10 +222,7 @@ function drawNeverHaveIEver() {
   let pool = neverPool()
   if (pool.length === 0) {
     state.neverDrawnIds.clear()
-    pool = [
-      ...neverHaveIEverData.filter((q) => state.neverHaveIEverDifficulties.includes(q.difficulty)),
-      ...customNeverStatements(),
-    ]
+    pool = [...neverHaveIEverData.filter(matchesCategoryFilter), ...customNeverStatements()]
   }
   if (pool.length === 0) {
     state.currentNeverStatement = null
@@ -301,7 +289,6 @@ export function useGameStore() {
     removePlayer,
     toggleCategory,
     toggleCategoryDifficulty,
-    toggleNeverDifficulty,
     setGameStyle,
     toggleSound,
     startGame,
