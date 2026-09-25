@@ -12,7 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['landed'])
 const { playTick } = useSound()
 
-const PALETTE = ['#ffb5c2', '#a9ddf0', '#ffe29a', '#b7ecd0', '#d0c6f5']
+const PALETTE = ['#ffe600', '#00e5ff', '#ff3b70', '#39ff14', '#ff8800', '#b03bff', '#00ffcc', '#ffcc00']
 const SIZE = 340
 const CENTER = SIZE / 2
 const RADIUS = SIZE / 2 - 8
@@ -41,10 +41,10 @@ const segmentAngle = computed(() => 360 / props.players.length)
 
 const labelFontSize = computed(() => {
   const n = props.players.length
-  if (n <= 8) return 20
-  if (n <= 12) return 17
-  if (n <= 16) return 15
-  return 13
+  if (n <= 8) return 14
+  if (n <= 12) return 12
+  if (n <= 16) return 10
+  return 8
 })
 
 const labelMaxChars = computed(() => {
@@ -54,13 +54,6 @@ const labelMaxChars = computed(() => {
   return 10
 })
 
-const wheelFilter = computed(() => {
-  const spread = 10 + glow.value * 18
-  const alpha = 0.25 + glow.value * 0.65
-  return `drop-shadow(0 0 ${spread}px rgba(255,205,60,${alpha}))`
-})
-
-// Angle 0 = top (12 o'clock), increasing clockwise — matches on-screen rotation direction.
 function toXY(angleDeg, radius) {
   const rad = (angleDeg * Math.PI) / 180
   return {
@@ -69,7 +62,6 @@ function toXY(angleDeg, radius) {
   }
 }
 
-// Inverse of toXY's convention: angle (clockwise from top) of a point relative to wheel center.
 function angleFromEvent(e, rect) {
   const cx = rect.left + rect.width / 2
   const cy = rect.top + rect.height / 2
@@ -94,9 +86,7 @@ const wedges = computed(() =>
     const p2 = toXY(end, RADIUS)
     const mid = start + seg / 2
     const labelPos = toXY(mid, RADIUS * 0.62)
-    // Radial orientation: text reads outward along the wedge's spoke, so its
-    // length is bounded by the (constant) radial band rather than the
-    // (shrinking) tangential arc — lets font stay bigger as players are added.
+
     let labelRotate = mid - 90
     labelRotate = ((labelRotate % 360) + 360) % 360
     if (labelRotate > 90 && labelRotate < 270) labelRotate += 180
@@ -234,10 +224,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex flex-col items-center gap-6">
+  <div class="mx-auto flex flex-col items-center gap-4">
     <div
       ref="wheelWrapperEl"
-      class="relative aspect-square w-[85vw] max-w-85 touch-none select-none"
+      class="relative aspect-square w-[85vw] max-w-[340px] touch-none select-none drop-shadow-[6px_6px_0px_#000]"
       :class="players.length >= 2 ? 'cursor-grab active:cursor-grabbing' : ''"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
@@ -246,14 +236,14 @@ onUnmounted(() => {
       @wheel="onWheelScroll"
     >
       <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" class="h-full w-full">
-        <g :transform="`rotate(${rotation} ${CENTER} ${CENTER})`" :style="{ filter: wheelFilter }">
-          <circle :cx="CENTER" :cy="CENTER" :r="RADIUS" fill="#ffffff" stroke="#ffcd3c" stroke-width="7" />
+        <g :transform="`rotate(${rotation} ${CENTER} ${CENTER})`">
+          <circle :cx="CENTER" :cy="CENTER" :r="RADIUS" fill="#ffffff" stroke="#000000" stroke-width="6" />
           <path
             v-for="(wedge, i) in wedges"
             :key="i"
             :d="wedge.path"
             :fill="wedge.color"
-            stroke="#ffffff"
+            stroke="#000000"
             stroke-width="3"
           />
           <text
@@ -262,9 +252,9 @@ onUnmounted(() => {
             :x="wedge.labelX"
             :y="wedge.labelY"
             :transform="`rotate(${wedge.labelRotate} ${wedge.labelX} ${wedge.labelY})`"
-            fill="#2b2a55"
+            fill="#000000"
             :font-size="labelFontSize"
-            font-family="'Fredoka', sans-serif"
+            font-family="'Press Start 2P', monospace"
             font-weight="700"
             text-anchor="middle"
             dominant-baseline="middle"
@@ -274,38 +264,42 @@ onUnmounted(() => {
         </g>
       </svg>
 
-      <!-- fixed pointer -->
+      <!-- Fixed Pointer -->
       <div
         class="pointer-events-none absolute left-1/2 top-0 z-10 h-0 w-0 -translate-x-1/2 -translate-y-1"
-        style="border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #6c63b5"
+        style="
+          border-left: 14px solid transparent;
+          border-right: 14px solid transparent;
+          border-top: 22px solid #000000;
+        "
       />
 
-      <!-- winner flash — bursts right where the pointer meets the wheel the instant it lands -->
+      <!-- Winner Flash -->
       <div
         v-if="flashActive"
-        class="pointer-events-none absolute left-1/2 top-0 z-20 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        class="pointer-events-none absolute left-1/2 top-0 z-20 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style="
           background: radial-gradient(
             circle,
-            rgba(255, 255, 255, 0.95) 0%,
-            rgba(255, 205, 60, 0.75) 40%,
-            rgba(255, 205, 60, 0) 75%
+            rgba(255, 255, 255, 1) 0%,
+            rgba(255, 230, 0, 0.9) 50%,
+            rgba(255, 230, 0, 0) 75%
           );
           animation: pointer-flash 0.5s ease-out forwards;
         "
       />
 
-      <!-- center hub / spin button -->
+      <!-- Center Pixel Yellow Spin Button -->
       <button
         type="button"
-        class="btn btn-circle btn-accent font-display absolute inset-0 m-auto h-24 w-24 border-4 border-base-200 text-base shadow-[0_4px_0_0_rgba(43,42,85,0.2)]"
+        class="pixel-btn pixel-btn-yellow absolute inset-0 m-auto flex h-24 w-24 flex-col items-center justify-center rounded-full text-center disabled:opacity-60"
         :disabled="spinning || players.length < 2"
         @pointerdown.stop
         @click="spinFromButton"
       >
-        {{ spinning ? '...' : 'Spin' }}
+        <span class="font-['Press_Start_2P'] text-[11px] font-extrabold uppercase">{{ spinning ? '...' : 'SPIN' }}</span>
       </button>
     </div>
-    <p class="font-display text-xs text-base-content/60">Tap Spin, drag the wheel, or scroll to spin!</p>
+    <p class="font-['Pixelify_Sans'] text-xs font-bold text-slate-900">TAP SPIN, DRAG, OR SCROLL TO SPIN!</p>
   </div>
 </template>

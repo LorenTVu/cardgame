@@ -5,6 +5,21 @@ import neverHaveIEverData from '../data/neverHaveIEver.json'
 const allCategories = [...new Set(questionsData.flatMap((q) => q.categories))].sort()
 const allDifficulties = ['easy', 'medium', 'hard']
 
+const FORFEITS_LIST = [
+  '🥤 Take 2 sips of your drink!',
+  '🏋️ Do 10 jumping jacks or pushups right now!',
+  '🤖 Talk in a robot voice for the next 2 rounds!',
+  '🎤 Sing the chorus of a song out loud!',
+  '💃 Do your best retro arcade victory dance for 10 seconds!',
+  '🤳 Let the group pick a funny emoji to send to a friend!',
+  '🎭 Speak only in whispers until your next turn!',
+  '🙈 Do a 15-second dramatic impression of another player!',
+  '🍕 Tell the group your most embarrassing food combination!',
+  '👑 Compliment every player in the room with a royal title!',
+  '🕹️ Make 8-bit arcade sound effects for 10 seconds!',
+  '🤐 Keep your mouth completely closed for 1 minute!',
+]
+
 const STORAGE_KEY = 'truthOrDareState'
 
 function loadPersisted() {
@@ -25,8 +40,8 @@ const defaultCategoryDifficulties = Object.fromEntries(
 const state = reactive({
   screen: persisted?.screen ?? 'setup', // 'setup' | 'game'
   players: persisted?.players ?? [],
+  playerScores: persisted?.playerScores ?? {}, // { playerName: { completed: 0, forfeits: 0 } }
   selectedCategories: (persisted?.selectedCategories ?? []).filter((c) => allCategories.includes(c)),
-  // Which difficulties count as "on" for each category — defaults to all three.
   categoryDifficulties: { ...defaultCategoryDifficulties, ...(persisted?.categoryDifficulties ?? {}) },
   gameStyle: persisted?.gameStyle ?? 'order', // 'order' | 'random' | 'hotpotato' | 'neverhaveiever'
   currentPlayerIndex: persisted?.currentPlayerIndex ?? 0,
@@ -35,6 +50,7 @@ const state = reactive({
   neverDrawnIds: new Set(persisted?.neverDrawnIds ?? []),
   currentQuestion: persisted?.currentQuestion ?? null,
   currentNeverStatement: persisted?.currentNeverStatement ?? null,
+  activeForfeit: persisted?.activeForfeit ?? null,
   passBuckUsed: new Set(persisted?.passBuckUsed ?? []),
   customQuestions: persisted?.customQuestions ?? [],
   soundEnabled: persisted?.soundEnabled ?? true,
@@ -47,6 +63,7 @@ function saveState() {
       JSON.stringify({
         screen: state.screen,
         players: state.players,
+        playerScores: state.playerScores,
         selectedCategories: state.selectedCategories,
         categoryDifficulties: state.categoryDifficulties,
         gameStyle: state.gameStyle,
@@ -56,29 +73,39 @@ function saveState() {
         neverDrawnIds: [...state.neverDrawnIds],
         currentQuestion: state.currentQuestion,
         currentNeverStatement: state.currentNeverStatement,
+        activeForfeit: state.activeForfeit,
         passBuckUsed: [...state.passBuckUsed],
         customQuestions: state.customQuestions,
         soundEnabled: state.soundEnabled,
       }),
     )
   } catch {
-    // Storage unavailable or full — the game still works, it just won't survive a refresh.
+    // Storage fallback
   }
 }
 
 watch(state, saveState, { deep: true })
 
-function needsSpinFor(playerCount) {
-  return state.gameStyle === 'random' && playerCount > 1
+function initPlayerScores() {
+  state.players.forEach((p) => {
+    if (!state.playerScores[p]) {
+      state.playerScores[p] = { completed: 0, forfeits: 0 }
+    }
+  })
 }
 
 function addPlayer(name) {
   const trimmed = name.trim()
   if (!trimmed) return
-  state.players.push(trimmed)
+  if (!state.players.includes(trimmed)) {
+    state.players.push(trimmed)
+    state.playerScores[trimmed] = { completed: 0, forfeits: 0 }
+  }
 }
 
 function removePlayer(index) {
+  const name = state.players[index]
+  if (name) delete state.playerScores[name]
   state.players.splice(index, 1)
 }
 
@@ -113,6 +140,7 @@ const canStart = computed(
 
 function startGame() {
   if (!canStart.value) return
+  initPlayerScores()
   if (needsSpinFor(state.players.length)) {
     state.currentPlayerIndex = null
     state.awaitingSpin = true
@@ -125,17 +153,23 @@ function startGame() {
   state.passBuckUsed.clear()
   state.currentQuestion = null
   state.currentNeverStatement = null
+  state.activeForfeit = null
   state.screen = 'game'
 }
 
 function backToSetup() {
   state.screen = 'setup'
   state.currentQuestion = null
+  state.activeForfeit = null
 }
 
 function resolveSpin(index) {
   state.currentPlayerIndex = index
   state.awaitingSpin = false
+}
+
+function needsSpinFor(playerCount) {
+  return state.gameStyle === 'random' && playerCount > 1
 }
 
 const currentPlayer = computed(() => state.players[state.currentPlayerIndex] ?? '')
@@ -144,7 +178,6 @@ function allQuestions() {
   return [...questionsData, ...state.customQuestions.filter((q) => q.type !== 'never')]
 }
 
-// Shared by Truth/Dare and Never Have I Ever — both are tagged with the same category set.
 function matchesCategoryFilter(q) {
   return q.categories.some(
     (c) => state.selectedCategories.includes(c) && state.categoryDifficulties[c]?.includes(q.difficulty),
@@ -155,7 +188,6 @@ function questionsPool(type) {
   return allQuestions().filter(
     (q) =>
       q.type === type &&
-      // Player-authored questions are always in play, however the category filter is set.
       (q.categories[0] === 'Custom' || matchesCategoryFilter(q)) &&
       !state.drawnIds.has(q.id),
   )
@@ -169,9 +201,9 @@ const remainingCount = computed(() => ({
 const remainingNever = computed(() => neverPool().length)
 
 function drawQuestion(type) {
+  state.activeForfeit = null
   let pool = questionsPool(type)
   if (pool.length === 0) {
-    // exhausted this round — reset drawn ids for this type and start over
     const drawnOfOtherType = allQuestions().filter(
       (q) => q.type !== type && state.drawnIds.has(q.id),
     )
@@ -188,6 +220,7 @@ function drawQuestion(type) {
 }
 
 function drawWildCard() {
+  state.activeForfeit = null
   const others = state.players.filter((_, i) => i !== state.currentPlayerIndex)
   const asker = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : null
   const text = asker
@@ -196,8 +229,8 @@ function drawWildCard() {
   state.currentQuestion = { id: `wild-${state.players.length}-${Math.random()}`, type: 'wild', text }
 }
 
-// Mystery Box ignores the category filter entirely — any question, any category.
 function drawMysteryBox() {
+  state.activeForfeit = null
   let pool = allQuestions().filter((q) => !state.drawnIds.has(q.id))
   if (pool.length === 0) {
     state.drawnIds.clear()
@@ -214,11 +247,11 @@ function customNeverStatements() {
 
 function neverPool() {
   const builtin = neverHaveIEverData.filter(matchesCategoryFilter)
-  // Player-authored statements are always in play, regardless of the category filter.
   return [...builtin, ...customNeverStatements()].filter((q) => !state.neverDrawnIds.has(q.id))
 }
 
 function drawNeverHaveIEver() {
+  state.activeForfeit = null
   let pool = neverPool()
   if (pool.length === 0) {
     state.neverDrawnIds.clear()
@@ -233,7 +266,6 @@ function drawNeverHaveIEver() {
   state.currentNeverStatement = item
 }
 
-// Forces the drawn card onto another player. Each player index may only do this once per game.
 function passTheBuck(passerIndex, targetIndex) {
   state.passBuckUsed.add(passerIndex)
   if (state.currentQuestion) {
@@ -241,15 +273,35 @@ function passTheBuck(passerIndex, targetIndex) {
   }
 }
 
-// Lets the current player hand the next turn to anyone, bypassing order/random-spin for one round.
 function chooseNextPlayer(index) {
   state.currentPlayerIndex = index
   state.awaitingSpin = false
   state.currentQuestion = null
+  state.activeForfeit = null
+}
+
+function recordCompletion() {
+  const player = currentPlayer.value
+  if (player) {
+    if (!state.playerScores[player]) state.playerScores[player] = { completed: 0, forfeits: 0 }
+    state.playerScores[player].completed += 1
+  }
+  nextTurn()
+}
+
+function generateForfeit() {
+  const player = currentPlayer.value
+  if (player) {
+    if (!state.playerScores[player]) state.playerScores[player] = { completed: 0, forfeits: 0 }
+    state.playerScores[player].forfeits += 1
+  }
+  const randomPunishment = FORFEITS_LIST[Math.floor(Math.random() * FORFEITS_LIST.length)]
+  state.activeForfeit = randomPunishment
 }
 
 function nextTurn() {
   state.currentQuestion = null
+  state.activeForfeit = null
   if (state.players.length === 0) return
   if (needsSpinFor(state.players.length)) {
     state.awaitingSpin = true
@@ -300,6 +352,8 @@ export function useGameStore() {
     drawNeverHaveIEver,
     chooseNextPlayer,
     passTheBuck,
+    recordCompletion,
+    generateForfeit,
     nextTurn,
     addCustomQuestion,
     removeCustomQuestion,

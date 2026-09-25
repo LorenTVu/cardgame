@@ -9,7 +9,7 @@ const text = ref('')
 const type = ref('truth')
 
 const placeholder = computed(() =>
-  type.value === 'never' ? 'e.g. gone skydiving' : 'Type your own Truth or Dare...',
+  type.value === 'never' ? 'e.g. gone skydiving' : 'TYPE CUSTOM QUESTION...',
 )
 
 function submit() {
@@ -21,44 +21,52 @@ function submit() {
 </script>
 
 <template>
-  <form class="flex flex-col gap-2" @submit.prevent="submit">
-    <p v-if="type === 'never'" class="text-xs text-base-content/60">
-      Just type the action — "Never have I ever" gets added automatically.
+  <form class="flex flex-col gap-3" @submit.prevent="submit">
+    <div class="grid grid-cols-3 gap-1.5 border-2 border-black bg-slate-100 p-1">
+      <button
+        type="button"
+        class="border-2 border-black py-1 font-['Press_Start_2P'] text-[9px] font-bold uppercase transition-all"
+        :class="type === 'truth' ? 'bg-[#00e5ff] text-black shadow-[1px_1px_0px_#000]' : 'bg-white text-slate-500'"
+        @click="type = 'truth'"
+      >
+        📜 TRUTH
+      </button>
+      <button
+        type="button"
+        class="border-2 border-black py-1 font-['Press_Start_2P'] text-[9px] font-bold uppercase transition-all"
+        :class="type === 'dare' ? 'bg-[#ff3b70] text-white shadow-[1px_1px_0px_#000]' : 'bg-white text-slate-500'"
+        @click="type = 'dare'"
+      >
+        🔥 DARE
+      </button>
+      <button
+        type="button"
+        class="border-2 border-black py-1 font-['Press_Start_2P'] text-[9px] font-bold uppercase transition-all"
+        :class="type === 'never' ? 'bg-[#b03bff] text-white shadow-[1px_1px_0px_#000]' : 'bg-white text-slate-500'"
+        @click="type = 'never'"
+      >
+        🤐 NEVER
+      </button>
+    </div>
+
+    <p v-if="type === 'never'" class="font-['Pixelify_Sans'] text-xs font-bold text-slate-700 italic">
+      "Never have I ever" is automatically prepended.
     </p>
+
     <textarea
       v-model="text"
       rows="2"
       :placeholder="placeholder"
-      class="textarea w-full"
-      style="--input-color: var(--color-base-300)"
+      class="w-full border-4 border-black bg-white p-2.5 font-['Pixelify_Sans'] text-sm font-bold text-black uppercase placeholder-slate-400 outline-none"
       maxlength="200"
     />
-    <div class="join">
-      <button
-        type="button"
-        class="btn join-item font-display flex-1"
-        :class="type === 'truth' ? 'btn-secondary' : 'btn-ghost'"
-        @click="type = 'truth'"
-      >
-        📜 Truth
-      </button>
-      <button
-        type="button"
-        class="btn join-item font-display flex-1"
-        :class="type === 'dare' ? 'btn-primary' : 'btn-ghost'"
-        @click="type = 'dare'"
-      >
-        🔥 Dare
-      </button>
-      <button
-        type="button"
-        class="btn join-item font-display flex-1"
-        :class="type === 'never' ? 'btn-neutral' : 'btn-ghost'"
-        @click="type = 'never'"
-      >
-        🤐 Never
-      </button>
-    </div>
-    <button type="submit" class="btn btn-warning font-display">➕ Add to the Deck</button>
+
+    <button
+      type="submit"
+      class="pixel-btn pixel-btn-yellow w-full py-2.5 text-xs font-bold uppercase disabled:opacity-50"
+      :disabled="!text.trim()"
+    >
+      ➕ ADD TO DECK
+    </button>
   </form>
 </template>

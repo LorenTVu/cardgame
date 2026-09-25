@@ -16,8 +16,8 @@ const passes = ref(0)
 let timer = null
 
 const CARD_META = {
-  truth: { label: '📜 Truth', badgeClass: 'badge-secondary' },
-  dare: { label: '🔥 Dare', badgeClass: 'badge-primary' },
+  truth: { label: '📜 TRUTH', badgeClass: 'bg-[#00e5ff] text-black font-bold' },
+  dare: { label: '🔥 DARE', badgeClass: 'bg-[#ff3b70] text-white font-bold' },
 }
 
 const passedToName = computed(() => {
@@ -39,7 +39,7 @@ const canPassBuck = computed(
     eligiblePassers.value.length > 0,
 )
 
-// --- Pass the Buck (two-step: who's using it, then who it goes to) ---
+// --- Pass the Buck ---
 const passBuckStep = ref('none') // 'none' | 'choosing-passer' | 'choosing-target'
 const chosenPasserIndex = ref(null)
 
@@ -92,80 +92,110 @@ onUnmounted(cancelTimer)
 
 <template>
   <div class="flex flex-1 flex-col items-center justify-center gap-6 py-4">
+    <!-- Idle Phase -->
     <template v-if="phase === 'idle'">
-      <h1 class="font-display title-outline text-center text-3xl text-white">🥔 Hot Potato</h1>
-      <p class="font-display max-w-xs text-center text-base-content/70">
-        Pass the device around fast — a hidden timer will go off somewhere between 5 and 20
-        seconds. Whoever's holding it when it does must do a Truth or Dare!
-      </p>
-      <button type="button" class="btn btn-lg btn-error font-display" @click="start">
-        Start Round
-      </button>
-    </template>
+      <div class="text-center">
+        <span class="pixel-badge bg-[#ffe600] text-black">SURVIVAL MODE</span>
+        <h1 class="pixel-title mt-2 text-2xl font-extrabold sm:text-3xl">🥔 HOT POTATO</h1>
+      </div>
 
-    <template v-else-if="phase === 'ticking'">
-      <h1 class="font-display title-outline animate-pulse text-center text-2xl text-white">
-        🔥 Passing...
-      </h1>
-      <p class="font-display text-center text-base-content/70">
-        Pass it fast — nobody knows when it'll go off!
+      <p class="max-w-xs text-center font-['Pixelify_Sans'] text-base font-bold text-slate-800 bg-white/80 border-2 border-black p-3">
+        Pass the device around fast! A hidden timer will explode between <strong>5 and 20 seconds</strong>!
       </p>
+
       <button
         type="button"
-        class="btn btn-circle btn-error font-display glow-urgent h-40 w-40 text-lg"
-        @click="pass"
+        class="pixel-btn pixel-btn-yellow px-8 py-4 text-xs font-bold uppercase shadow-[6px_6px_0px_#000]"
+        @click="start"
       >
-        🥔 Pass!
+        START ROUND 🔥
       </button>
-      <p class="font-display text-sm text-base-content/50">Passed {{ passes }} times</p>
     </template>
 
+    <!-- Ticking Phase -->
+    <template v-else-if="phase === 'ticking'">
+      <div class="text-center">
+        <h1 class="font-['Press_Start_2P'] text-xl font-bold text-red-600 animate-pulse">
+          🔥 TICKING...
+        </h1>
+        <p class="font-['Pixelify_Sans'] text-sm font-bold text-slate-800 mt-1">Pass it fast!</p>
+      </div>
+
+      <button
+        type="button"
+        class="glow-urgent flex h-40 w-40 flex-col items-center justify-center border-4 border-black bg-[#ff2222] font-['Press_Start_2P'] text-base font-bold text-white shadow-[6px_6px_0px_#000] active:translate-x-1 active:translate-y-1"
+        @click="pass"
+      >
+        <span class="text-4xl mb-1">🥔</span>
+        <span>PASS!</span>
+      </button>
+
+      <div class="pixel-badge bg-[#ffe600] text-black">
+        PASSED <span class="font-black">{{ passes }}</span> TIMES
+      </div>
+    </template>
+
+    <!-- Exploded Phase -->
     <template v-else>
-      <h1 class="font-display title-outline text-center text-3xl text-white">💥 Time's Up!</h1>
-      <p class="font-display text-center text-secondary">Whoever's holding it now...</p>
+      <div class="text-center">
+        <span class="pixel-badge bg-red-600 text-white font-bold">BOOM! 💥</span>
+        <h1 class="pixel-title mt-2 text-2xl font-extrabold sm:text-3xl">TIME'S UP!</h1>
+        <p class="font-['Pixelify_Sans'] text-sm font-bold text-slate-800 mt-1">Whoever holds the device now...</p>
+      </div>
+
       <div
         v-if="state.currentQuestion"
-        class="rounded-box relative w-full max-w-sm border-4 border-neutral/40 bg-base-200 p-6 text-center shadow-[0_8px_0_0_rgba(43,42,85,0.15)]"
+        class="pixel-card-dare relative w-full max-w-sm p-6 text-center"
       >
         <CategoryTags :categories="state.currentQuestion.categories" :difficulty="state.currentQuestion.difficulty" />
-        <span
-          class="font-display badge badge-lg px-4 py-4"
-          :class="CARD_META[state.currentQuestion.type].badgeClass"
-        >
-          {{ CARD_META[state.currentQuestion.type].label }}
-        </span>
-        <p v-if="passedToName" class="font-display mt-2 text-sm text-error">
-          🔄 Passed to {{ passedToName }}!
-        </p>
-        <p class="mt-4 text-xl font-medium leading-snug">{{ state.currentQuestion.text }}</p>
+
+        <div class="mt-4 flex flex-col items-center gap-3">
+          <span
+            class="pixel-badge uppercase font-bold"
+            :class="CARD_META[state.currentQuestion.type].badgeClass"
+          >
+            {{ CARD_META[state.currentQuestion.type].label }}
+          </span>
+          <p v-if="passedToName" class="font-['Press_Start_2P'] text-[10px] text-red-600">
+            🔄 DEFLECTED TO {{ passedToName }}!
+          </p>
+          <p class="font-['Pixelify_Sans'] text-xl font-bold leading-relaxed text-black">
+            {{ state.currentQuestion.text }}
+          </p>
+        </div>
       </div>
 
       <button
         v-if="canPassBuck"
         type="button"
-        class="btn btn-outline btn-error btn-sm font-display"
+        class="pixel-btn pixel-btn-white px-4 py-2 text-[10px] font-bold text-red-600"
         @click="passBuckStep = 'choosing-passer'"
       >
-        🔄 Pass the Buck
+        🔄 PASS THE BUCK (DEFLECT)
       </button>
 
-      <button type="button" class="btn btn-lg btn-warning font-display" @click="start">
-        Next Round →
+      <button
+        type="button"
+        class="pixel-btn pixel-btn-yellow w-full max-w-sm py-3.5 text-xs font-bold uppercase"
+        @click="start"
+      >
+        NEXT ROUND →
       </button>
     </template>
 
+    <!-- Dialogs -->
     <PlayerPickerDialog
       v-if="passBuckStep === 'choosing-passer'"
-      title="Pass the Buck"
-      subtitle="Who's using their pass?"
+      title="PASS THE BUCK"
+      subtitle="WHO'S USING PASS?"
       :players="eligiblePassers"
       @pick="pickPasser"
     />
 
     <PlayerPickerDialog
       v-if="passBuckStep === 'choosing-target'"
-      title="Pass the Buck"
-      subtitle="Who do they pass it to?"
+      title="PASS THE BUCK"
+      subtitle="WHO DO THEY PASS TO?"
       :players="targetsForPasser"
       @pick="pickPassBuckTarget"
     />

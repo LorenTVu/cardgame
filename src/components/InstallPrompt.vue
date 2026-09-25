@@ -12,25 +12,33 @@ const canShow = computed(
 <template>
   <div
     v-if="canShow"
-    class="rounded-box flex items-center justify-between gap-3 border-4 border-neutral/40 bg-base-200 px-4 py-3 shadow-[0_6px_0_0_rgba(43,42,85,0.15)]"
+    class="pixel-card flex items-center justify-between gap-3 p-3 text-black shadow-[4px_4px_0px_#000]"
   >
     <div class="flex items-center gap-2">
-      <span class="text-2xl">📲</span>
-      <p v-if="state.isIOS" class="font-display text-sm leading-snug">
-        Install this app: tap <strong>Share</strong> then <strong>Add to Home Screen</strong>.
+      <span class="text-xl">📲</span>
+      <p v-if="state.isIOS" class="font-['Pixelify_Sans'] text-sm font-bold leading-tight text-slate-900">
+        Install app: tap <strong>Share</strong> then <strong>Add to Home Screen</strong>.
       </p>
-      <p v-else class="font-display text-sm leading-snug">Install this app for the full experience!</p>
+      <p v-else class="font-['Pixelify_Sans'] text-sm font-bold leading-tight text-slate-900">
+        INSTALL APP FOR FULL ARCADE EXPERIENCE!
+      </p>
     </div>
+
     <div class="flex shrink-0 items-center gap-2">
       <button
         v-if="!state.isIOS"
         type="button"
-        class="btn btn-warning btn-sm font-display"
+        class="pixel-btn pixel-btn-yellow px-3 py-1 text-[10px] font-bold"
         @click="promptInstall"
       >
-        Install
+        INSTALL
       </button>
-      <button type="button" class="btn btn-ghost btn-sm" aria-label="Dismiss install prompt" @click="dismiss">
+      <button
+        type="button"
+        class="font-bold text-red-600 hover:text-red-800 px-1 text-sm"
+        aria-label="Dismiss install prompt"
+        @click="dismiss"
+      >
         ✕
       </button>
     </div>

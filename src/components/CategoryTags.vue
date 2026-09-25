@@ -10,38 +10,38 @@ defineProps({
   },
 })
 
-const CATEGORY_COLORS = {
-  Dickinson: '#ffd7ad',
-  Icebreakers: '#aee2f7',
-  Friendship: '#fff2a8',
-  Romance: '#ffc4d6',
-  Spicy: '#ffb0ac',
-  Custom: '#d9d0f5',
+const CATEGORY_STYLES = {
+  Dickinson: 'bg-[#ffe600] text-black',
+  Icebreakers: 'bg-[#00e5ff] text-black',
+  Friendship: 'bg-[#39ff14] text-black',
+  Romance: 'bg-[#ff70a6] text-black',
+  Spicy: 'bg-[#ff3b70] text-white',
+  Custom: 'bg-[#b03bff] text-white',
 }
 
-const DIFFICULTY_COLORS = {
-  easy: '#bdf0c9',
-  medium: '#ffe08a',
-  hard: '#ff9d97',
+const DIFFICULTY_STYLES = {
+  easy: 'bg-[#39ff14] text-black',
+  medium: 'bg-[#ffe600] text-black',
+  hard: 'bg-[#ff3b70] text-white',
 }
 </script>
 
 <template>
-  <div v-if="categories.length || difficulty" class="absolute left-3 top-3 z-10 flex max-w-[75%] flex-wrap gap-1">
+  <div v-if="categories.length || difficulty" class="absolute left-3 top-3 z-10 flex max-w-[85%] flex-wrap gap-1.5">
     <span
       v-for="cat in categories"
       :key="cat"
-      class="rounded-full px-2 py-0.5 font-display text-[10px] font-semibold"
-      :style="{ backgroundColor: CATEGORY_COLORS[cat] || CATEGORY_COLORS.Custom, color: '#2b2a55' }"
+      class="pixel-badge font-bold uppercase tracking-wider"
+      :class="CATEGORY_STYLES[cat] || CATEGORY_STYLES.Custom"
     >
       {{ cat }}
     </span>
     <span
       v-if="difficulty"
-      class="rounded-full px-2 py-0.5 font-display text-[10px] font-semibold capitalize"
-      :style="{ backgroundColor: DIFFICULTY_COLORS[difficulty], color: '#2b2a55' }"
+      class="pixel-badge font-bold uppercase tracking-wider"
+      :class="DIFFICULTY_STYLES[difficulty]"
     >
-      {{ difficulty }}
+      ⚡ {{ difficulty }}
     </span>
   </div>
 </template>
