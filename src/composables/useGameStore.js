@@ -15,8 +15,6 @@ const FORFEITS_LIST = [
   '🎭 Speak only in whispers until your next turn!',
   '🙈 Do a 15-second dramatic impression of another player!',
   '🍕 Tell the group your most embarrassing food combination!',
-  '👑 Compliment every player in the room with a royal title!',
-  '🕹️ Make 8-bit arcade sound effects for 10 seconds!',
   '🤐 Keep your mouth completely closed for 1 minute!',
 ]
 
